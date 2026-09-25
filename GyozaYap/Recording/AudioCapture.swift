@@ -7,12 +7,14 @@ import Foundation
 /// converter keeps sample-rate state between buffers, so it must not be shared.
 nonisolated final class AudioPipe: @unchecked Sendable {
     let outputFormat: AVAudioFormat
+    private let timeline: AudioTimeline
     private let sink: @Sendable (AVAudioPCMBuffer) -> Void
     private let lock = NSLock()
     private var converter: AVAudioConverter?
 
-    init(outputFormat: AVAudioFormat, sink: @escaping @Sendable (AVAudioPCMBuffer) -> Void) {
+    init(outputFormat: AVAudioFormat, timeline: AudioTimeline, sink: @escaping @Sendable (AVAudioPCMBuffer) -> Void) {
         self.outputFormat = outputFormat
+        self.timeline = timeline
         self.sink = sink
     }
 
@@ -43,6 +45,10 @@ nonisolated final class AudioPipe: @unchecked Sendable {
             feeder.next(inputStatus)
         }
         guard status != .error, output.frameLength > 0 else { return }
+        timeline.noteFed(
+            duration: Double(output.frameLength) / outputFormat.sampleRate,
+            endingAt: ProcessInfo.processInfo.systemUptime
+        )
         sink(output)
     }
 }
@@ -137,6 +143,9 @@ nonisolated final class MicrophoneCapture: @unchecked Sendable {
 /// (except this app), read through a private aggregate device. Needs the
 /// "System Audio Recording" permission, not Screen Recording.
 nonisolated final class SystemAudioCapture: @unchecked Sendable {
+    /// Unusable IO cycles (about 10 ms each) before rebuilding the tap.
+    private static let invalidCyclesBeforeRebuild = 200
+
     private let pipe: AudioPipe
     private let ioQueue = DispatchQueue(label: "com.gyoza.GyozaYap.system-audio", qos: .userInitiated)
     private let controlQueue = DispatchQueue(label: "com.gyoza.GyozaYap.system-audio-control")
@@ -146,6 +155,10 @@ nonisolated final class SystemAudioCapture: @unchecked Sendable {
     private var procID: AudioDeviceIOProcID?
     private var deviceListener: AudioObjectPropertyListenerBlock?
     private var isRunning = false
+    /// Only touched on `ioQueue`.
+    private var invalidCycles = 0
+    /// Only touched on `controlQueue`.
+    private var lastRebuild = Date.distantPast
 
     init(pipe: AudioPipe) {
         self.pipe = pipe
@@ -165,8 +178,6 @@ nonisolated final class SystemAudioCapture: @unchecked Sendable {
     }
 
     func stop() {
-        // Remove the listener before taking the lock: removal waits for any
-        // in-flight listener call, which itself needs the lock.
         removeDeviceListener()
         lock.lock()
         defer { lock.unlock() }
@@ -186,12 +197,6 @@ nonisolated final class SystemAudioCapture: @unchecked Sendable {
         tapID = newTap
 
         do {
-            let outputDevice = try CoreAudioProperty.read(
-                CoreAudioProperty.systemObject,
-                kAudioHardwarePropertyDefaultSystemOutputDevice,
-                initial: AudioDeviceID(kAudioObjectUnknown)
-            )
-            let outputUID = try CoreAudioProperty.readString(outputDevice, kAudioDevicePropertyDeviceUID)
             var streamDescription = try CoreAudioProperty.read(
                 newTap,
                 kAudioTapPropertyFormat,
@@ -201,16 +206,15 @@ nonisolated final class SystemAudioCapture: @unchecked Sendable {
                 throw CaptureError.unsupportedFormat
             }
 
+            // Tap-only aggregate. Adding the output device as a sub-device
+            // would also bring in its microphone (AirPods, USB headsets) ahead
+            // of the tap, and force Bluetooth headsets into call-quality mode.
             let aggregate: [String: Any] = [
                 kAudioAggregateDeviceNameKey: "GyozaYap Call Audio",
                 kAudioAggregateDeviceUIDKey: UUID().uuidString,
-                kAudioAggregateDeviceMainSubDeviceKey: outputUID,
                 kAudioAggregateDeviceIsPrivateKey: true,
                 kAudioAggregateDeviceIsStackedKey: false,
                 kAudioAggregateDeviceTapAutoStartKey: true,
-                kAudioAggregateDeviceSubDeviceListKey: [
-                    [kAudioSubDeviceUIDKey: outputUID]
-                ],
                 kAudioAggregateDeviceTapListKey: [
                     [
                         kAudioSubTapDriftCompensationKey: true,
@@ -225,13 +229,10 @@ nonisolated final class SystemAudioCapture: @unchecked Sendable {
             )
             aggregateID = newAggregate
 
-            let pipe = self.pipe
+            let expectedBuffers = format.isInterleaved ? 1 : Int(format.channelCount)
             var newProc: AudioDeviceIOProcID?
-            let status = AudioDeviceCreateIOProcIDWithBlock(&newProc, newAggregate, ioQueue) { _, inputData, _, _, _ in
-                guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: inputData, deallocator: nil) else {
-                    return
-                }
-                pipe.process(buffer)
+            let status = AudioDeviceCreateIOProcIDWithBlock(&newProc, newAggregate, ioQueue) { [weak self] _, inputData, _, _, _ in
+                self?.receive(inputData, format: format, expectedBuffers: expectedBuffers)
             }
             try CoreAudioProperty.check(status, "read call audio")
             procID = newProc
@@ -240,6 +241,37 @@ nonisolated final class SystemAudioCapture: @unchecked Sendable {
             tearDownLocked()
             throw error
         }
+    }
+
+    /// Runs on `ioQueue` for every IO cycle.
+    private func receive(_ inputData: UnsafePointer<AudioBufferList>, format: AVAudioFormat, expectedBuffers: Int) {
+        // Only wrap the list when its layout matches the tap's format;
+        // anything else would be misread as audio.
+        if Int(inputData.pointee.mNumberBuffers) == expectedBuffers,
+           let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: inputData, deallocator: nil) {
+            invalidCycles = 0
+            pipe.process(buffer)
+            return
+        }
+        // A few seconds of unusable audio (e.g. a Bluetooth headset switching
+        // profiles mid-call): rebuild the tap rather than stay silent.
+        invalidCycles += 1
+        if invalidCycles % Self.invalidCyclesBeforeRebuild == 0 {
+            controlQueue.async { [weak self] in
+                self?.rebuild()
+            }
+        }
+    }
+
+    /// Runs on `controlQueue`.
+    private func rebuild() {
+        guard Date().timeIntervalSince(lastRebuild) > 5 else { return }
+        lastRebuild = Date()
+        lock.lock()
+        defer { lock.unlock() }
+        guard isRunning else { return }
+        tearDownLocked()
+        try? startLocked()
     }
 
     private func tearDownLocked() {
@@ -258,12 +290,12 @@ nonisolated final class SystemAudioCapture: @unchecked Sendable {
         tapID = CoreAudioProperty.unknownObject
     }
 
-    /// Switching output (e.g. connecting AirPods mid-call) invalidates the
-    /// aggregate device, so rebuild the tap on the new device.
+    /// A new output device (e.g. AirPods connecting mid-call) can change the
+    /// tap's format, so rebuild it.
     private func installDeviceListener() {
-        var propertyAddress = CoreAudioProperty.makeAddress(kAudioHardwarePropertyDefaultSystemOutputDevice)
+        var propertyAddress = CoreAudioProperty.makeAddress(kAudioHardwarePropertyDefaultOutputDevice)
         let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-            self?.restartAfterDeviceChange()
+            self?.rebuild()
         }
         let status = AudioObjectAddPropertyListenerBlock(CoreAudioProperty.systemObject, &propertyAddress, controlQueue, listener)
         if status == noErr {
@@ -273,16 +305,8 @@ nonisolated final class SystemAudioCapture: @unchecked Sendable {
 
     private func removeDeviceListener() {
         guard let deviceListener else { return }
-        var propertyAddress = CoreAudioProperty.makeAddress(kAudioHardwarePropertyDefaultSystemOutputDevice)
+        var propertyAddress = CoreAudioProperty.makeAddress(kAudioHardwarePropertyDefaultOutputDevice)
         _ = AudioObjectRemovePropertyListenerBlock(CoreAudioProperty.systemObject, &propertyAddress, controlQueue, deviceListener)
         self.deviceListener = nil
-    }
-
-    private func restartAfterDeviceChange() {
-        lock.lock()
-        defer { lock.unlock() }
-        guard isRunning else { return }
-        tearDownLocked()
-        try? startLocked()
     }
 }

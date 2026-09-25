@@ -103,10 +103,10 @@ struct RecordingView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Notes").font(.headline)
             TextEditor(text: $recorder.liveNotes)
-            .font(.body)
-            .scrollContentBackground(.hidden)
-            .padding(6)
-            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .padding(6)
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
 
             Text("Mark this moment").font(.subheadline).foregroundStyle(.secondary)
             HStack {

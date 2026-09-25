@@ -85,8 +85,9 @@ final class RecordingController: ObservableObject {
         let (events, continuation) = AsyncStream.makeStream(of: SourceEvent.self)
         let session = CaptureSession(locale: settings.locale, events: continuation)
         let controller = self
+        let started: CaptureSession.Started
         do {
-            statusNotes = try await session.start { text in
+            started = try await session.start { text in
                 Task { @MainActor in
                     controller.startingStatus = text
                 }
@@ -98,9 +99,11 @@ final class RecordingController: ObservableObject {
         }
 
         self.session = session
-        let startedAt = Date()
-        recordingStartedAt = startedAt
-        liveMeeting?.startedAt = startedAt
+        statusNotes = started.warnings
+        // The same instant the transcript's clock starts from, so markers
+        // line up with the lines around them.
+        recordingStartedAt = started.startedAt
+        liveMeeting?.startedAt = started.startedAt
         startingStatus = nil
         phase = .recording
 

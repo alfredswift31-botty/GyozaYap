@@ -9,6 +9,7 @@ Make meeting yapping fun. GyozaYap is a native macOS meeting notetaker. It notic
 - **Your voice** comes from the microphone; **everyone else** comes straight from your Mac's audio output through a Core Audio process tap. Because the two are separate streams, every line is labeled **Me** or **Them** without guessing.
 - Works with Microsoft Teams, Zoom, Webex, Slack, FaceTime, Discord, and calls in Chrome, Safari, Edge, Arc, Brave or Firefox.
 - The call audio needs only the **System Audio Recording** permission, not Screen Recording.
+- Works with AirPods and USB headsets. Both sides are stamped against one clock, so the transcript stays in order even after long silences.
 - Not wearing headphones? The mic also hears the other side through your speakers. GyozaYap removes those echoed lines when you stop.
 
 ### It notices your meetings
