@@ -68,6 +68,11 @@ jobs:
           otool -l "$BIN" | grep -B2 -A2 "FoundationModels"
           otool -l "$BIN" | grep -A2 LC_LOAD_WEAK_DYLIB | grep -q FoundationModels \
             || { echo "FoundationModels is not weak-linked"; exit 1; }
+          echo "== App icon =="
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIconName" "$APP/Contents/Info.plist"
+          test -f "$APP/Contents/Resources/AppIcon.icns" || test -f "$APP/Contents/Resources/Assets.car" \
+            || { echo "No compiled app icon"; exit 1; }
+          ls -la "$APP/Contents/Resources"
           echo "== Minimum macOS =="
           /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$APP/Contents/Info.plist"
 
