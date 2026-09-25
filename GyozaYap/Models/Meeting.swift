@@ -24,11 +24,68 @@ nonisolated struct TranscriptSegment: Codable, Identifiable, Hashable, Sendable 
     var text: String
 }
 
-/// A moment the user flagged during the call ("that was important").
+/// A moment the user flagged during the call. The AI treats these as strong
+/// hints about what mattered.
 nonisolated struct Bookmark: Codable, Identifiable, Hashable, Sendable {
+    nonisolated enum Kind: String, Codable, CaseIterable, Sendable {
+        case idea
+        case decision
+        case question
+
+        var symbol: String {
+            switch self {
+            case .idea: "★"
+            case .decision: "✓"
+            case .question: "?"
+            }
+        }
+
+        var title: String {
+            switch self {
+            case .idea: "Idea"
+            case .decision: "Decision"
+            case .question: "Question"
+            }
+        }
+    }
+
     var id = UUID()
     var time: TimeInterval
-    var label: String
+    var kind: Kind
+    /// Optional words the user typed with the marker.
+    var note: String = ""
+}
+
+/// Shapes what the AI pulls out of the transcript.
+nonisolated enum NotesMode: String, Codable, CaseIterable, Identifiable, Sendable {
+    case meeting
+    case brainstorm
+    case research
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .meeting: "Meeting"
+        case .brainstorm: "Brainstorm"
+        case .research: "Research"
+        }
+    }
+}
+
+/// What the user said about recording consent when they started.
+nonisolated enum ConsentStatus: String, Codable, CaseIterable, Sendable {
+    case obtained
+    case notNeeded
+    case notRecorded
+
+    var title: String {
+        switch self {
+        case .obtained: "Everyone agreed"
+        case .notNeeded: "Not needed"
+        case .notRecorded: "Not recorded"
+        }
+    }
 }
 
 nonisolated struct ActionItem: Codable, Identifiable, Hashable, Sendable {
@@ -69,6 +126,8 @@ nonisolated struct Meeting: Codable, Identifiable, Hashable, Sendable {
     var bookmarks: [Bookmark] = []
     /// What the user typed during the call.
     var userNotes: String = ""
+    var mode: NotesMode = .meeting
+    var consent: ConsentStatus = .notRecorded
     var notes: MeetingNotes?
 
     var wordCount: Int {
