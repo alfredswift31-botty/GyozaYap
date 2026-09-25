@@ -1,0 +1,74 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      # Ad-hoc signing ("-") so CI needs no certificates. Hardened runtime is
+      # off for tests only: its library validation rejects the ad-hoc test
+      # bundle injected into the ad-hoc host app.
+      - name: Unit tests
+        run: |
+          xcodebuild test \
+            -project GyozaYap.xcodeproj \
+            -scheme GyozaYap \
+            -only-testing:GyozaYapTests \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            ENABLE_HARDENED_RUNTIME=NO
+
+      - name: Build release app
+        run: |
+          xcodebuild build \
+            -project GyozaYap.xcodeproj \
+            -target GyozaYap \
+            -configuration Release \
+            SYMROOT="$PWD/build" \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=
+
+      - name: Package
+        run: |
+          codesign --verify --deep --strict build/Release/GyozaYap.app
+          ditto -c -k --keepParent build/Release/GyozaYap.app GyozaYap.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GyozaYap
+          path: GyozaYap.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: GyozaYap
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" GyozaYap.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Gyoza Island ${GITHUB_REF_NAME#v}" \
+            --generate-notes
