@@ -36,11 +36,14 @@ nonisolated enum CoreAudioProperty {
         guard status == noErr else { throw CaptureError.coreAudio(action: action, status: status) }
     }
 
-    static func read<Value>(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector, initial: Value) throws -> Value {
+    /// Reads a plain-data property (numbers, IDs, C structs).
+    static func read<Value: BitwiseCopyable>(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector, initial: Value) throws -> Value {
         var propertyAddress = makeAddress(selector)
         var size = UInt32(MemoryLayout<Value>.size)
         var value = initial
-        let status = AudioObjectGetPropertyData(object, &propertyAddress, 0, nil, &size, &value)
+        let status = withUnsafeMutablePointer(to: &value) { pointer in
+            AudioObjectGetPropertyData(object, &propertyAddress, 0, nil, &size, pointer)
+        }
         try check(status, "read audio property \(selector)")
         return value
     }

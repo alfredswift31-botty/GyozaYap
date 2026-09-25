@@ -57,7 +57,34 @@ final class FloatingPanel {
     }
 }
 
-/// Shown when auto-start began recording a detected call.
+/// A short message with an OK button, for errors outside the main window.
+struct MessageToast: View {
+    let title: String
+    let message: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: "exclamationmark.triangle.fill")
+                .font(.headline)
+                .foregroundStyle(.orange)
+            Text(message)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("OK", action: onDismiss)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 26)
+        .padding(.bottom, 16)
+        .frame(width: 360)
+    }
+}
+
+/// Shown when a recording started from the corner panel.
 struct RecordingToast: View {
     let appName: String
     let onStop: () -> Void

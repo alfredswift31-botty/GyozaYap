@@ -26,6 +26,9 @@ nonisolated final class AudioPipe: @unchecked Sendable {
         if converter == nil || converter?.inputFormat != buffer.format {
             converter = AVAudioConverter(from: buffer.format, to: outputFormat)
             converter?.primeMethod = .none
+            // Mix every channel into the mono speech format instead of
+            // keeping only the first (left) one.
+            converter?.downmix = true
         }
         guard let converter else { return }
 

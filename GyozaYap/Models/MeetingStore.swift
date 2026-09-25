@@ -10,6 +10,8 @@ final class MeetingStore: ObservableObject {
     @Published private(set) var loadError: String?
 
     private let directory: URL
+    /// Disk writes waiting out the debounce, by meeting.
+    private var pendingWrites: [Meeting.ID: Task<Void, Never>] = [:]
 
     init(directory: URL? = nil) {
         if let directory {
@@ -25,7 +27,9 @@ final class MeetingStore: ObservableObject {
         meetings.first { $0.id == id }
     }
 
-    /// Inserts or replaces the meeting and writes it to disk.
+    /// Inserts or replaces the meeting now, and writes it to disk shortly
+    /// after. Edits typed one key at a time become a single write instead of
+    /// rewriting a long transcript on every keystroke.
     func save(_ meeting: Meeting) {
         if let index = meetings.firstIndex(where: { $0.id == meeting.id }) {
             meetings[index] = meeting
@@ -33,12 +37,30 @@ final class MeetingStore: ObservableObject {
             meetings.append(meeting)
         }
         meetings.sort { $0.startedAt > $1.startedAt }
-        write(meeting)
+
+        let id = meeting.id
+        pendingWrites[id]?.cancel()
+        pendingWrites[id] = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+            self?.writeNow(id)
+        }
     }
 
     func delete(_ id: Meeting.ID) {
+        // A pending write must not bring the file back.
+        pendingWrites[id]?.cancel()
+        pendingWrites[id] = nil
         meetings.removeAll { $0.id == id }
         try? FileManager.default.removeItem(at: fileURL(for: id))
+    }
+
+    /// Writes everything still waiting on the debounce. Call before quitting.
+    func flushPendingWrites() {
+        for id in Array(pendingWrites.keys) {
+            pendingWrites[id]?.cancel()
+            writeNow(id)
+        }
     }
 
     /// Case-insensitive search over titles, transcripts, typed notes and AI
@@ -68,6 +90,12 @@ final class MeetingStore: ObservableObject {
         } catch {
             loadError = "Couldn't open the meetings folder: \(error.localizedDescription)"
         }
+    }
+
+    private func writeNow(_ id: Meeting.ID) {
+        pendingWrites[id] = nil
+        guard let meeting = meeting(id: id) else { return }
+        write(meeting)
     }
 
     private func write(_ meeting: Meeting) {

@@ -70,11 +70,15 @@ nonisolated final class LegacyTranscriber: SourceTranscriber, @unchecked Sendabl
                 self?.resumeFinish()
             }
         }
+        releaseRecognition()
+    }
+
+    private func releaseRecognition() {
         lock.lock()
+        defer { lock.unlock() }
         task?.cancel()
         task = nil
         request = nil
-        lock.unlock()
     }
 
     private func startRequestLocked() {

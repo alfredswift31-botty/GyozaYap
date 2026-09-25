@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import Speech
 
 nonisolated enum TranscriptEvent: Sendable {
     /// Words recognised so far that may still change.
@@ -53,7 +54,11 @@ nonisolated enum TranscriberFactory {
         onEvent: @escaping @Sendable (TranscriptEvent) -> Void
     ) async throws -> any SourceTranscriber {
         if #available(macOS 26.0, *) {
-            return try await AnalyzerTranscriber.make(locale: locale, status: status, onEvent: onEvent)
+            // Fall back to the older engine on Macs where the new one isn't
+            // offered, rather than not transcribing at all.
+            if SpeechTranscriber.isAvailable {
+                return try await AnalyzerTranscriber.make(locale: locale, status: status, onEvent: onEvent)
+            }
         }
         return try LegacyTranscriber(locale: locale, onEvent: onEvent)
     }

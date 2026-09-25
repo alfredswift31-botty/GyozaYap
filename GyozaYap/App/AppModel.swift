@@ -38,15 +38,33 @@ final class AppModel {
     }
 
     private func callDetected(_ app: String) {
-        let recorder = self.recorder
-        let panel = self.panel
-
         if settings.autoStartRecording {
             let title = "\(app) call · \(Date().formatted(date: .abbreviated, time: .shortened))"
-            let mode = settings.defaultMode
-            Task {
-                await recorder.start(title: title, mode: mode, consent: .notRecorded, sourceApp: app)
-                guard recorder.phase == .recording else { return }
+            startRecordingFromPanel(title: title, mode: settings.defaultMode, consent: .notRecorded, app: app)
+            return
+        }
+
+        panel.show(
+            StartRecordingSheet(
+                sourceApp: app,
+                onStart: { [weak self] title, mode, consent in
+                    self?.startRecordingFromPanel(title: title, mode: mode, consent: consent, app: app)
+                },
+                onCancel: { [weak self] in self?.panel.close() }
+            )
+            .environmentObject(settings)
+        )
+    }
+
+    /// Starts a recording outside the main window (which may be closed), so
+    /// the result, good or bad, is shown in the corner panel.
+    private func startRecordingFromPanel(title: String, mode: NotesMode, consent: ConsentStatus, app: String) {
+        let recorder = self.recorder
+        let panel = self.panel
+        panel.close()
+        Task {
+            await recorder.start(title: title, mode: mode, consent: consent, sourceApp: app)
+            if recorder.phase == .recording {
                 panel.show(
                     RecordingToast(
                         appName: app,
@@ -58,21 +76,14 @@ final class AppModel {
                     ),
                     autoCloseAfter: 30
                 )
+            } else if let message = recorder.errorMessage {
+                recorder.errorMessage = nil
+                panel.show(
+                    MessageToast(title: "Couldn't record", message: message, onDismiss: { panel.close() }),
+                    autoCloseAfter: nil
+                )
             }
-            return
         }
-
-        panel.show(
-            StartRecordingSheet(
-                sourceApp: app,
-                onStart: { title, mode, consent in
-                    panel.close()
-                    Task { await recorder.start(title: title, mode: mode, consent: consent, sourceApp: app) }
-                },
-                onCancel: { panel.close() }
-            )
-            .environmentObject(settings)
-        )
     }
 
     /// Writes notes as soon as a meeting is saved, when an engine is ready.
@@ -90,6 +101,10 @@ final class AppModel {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillTerminate(_ notification: Notification) {
+        AppModel.shared.store.flushPendingWrites()
+    }
+
     /// Keep running with the window closed, so calls can still be detected
     /// from the menu bar.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
