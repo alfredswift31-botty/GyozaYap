@@ -62,8 +62,19 @@ CI is green:
 - The Release build passes.
 - The built app is checked for its privacy strings, entitlements, the weak link to FoundationModels, the icon, and the minimum macOS version.
 
+### On a real Mac (28 Sep 2026, macOS 27, headphones, GyozaYap 1.0.1)
+The user did a 1.5-minute solo test: they started a recording by hand, played a podcast on the Mac and talked over it.
+- The mic was transcribed as **Me** and the Mac's audio as **Them**, and the two sides interleaved correctly by time. This confirms the tap-only system-audio capture works with headphones.
+- Apple Intelligence wrote the notes on the device (the notes footer says so). Those notes had quality problems:
+  - Both action items were made up. Nobody gave a task. The model still made "Me" the owner and gave the meeting date as the due date, even though the prompt says never to invent either.
+  - One "open question" had been answered in the transcript: who pre-ordered.
+- A first attempt played the podcast from a phone. That audio isn't Mac system audio, so there was no "Them", which is expected. Worth a line in the README.
+
 ## Not verified
-Recording, detection and transcription need a real Mac with real permissions, so they haven't been tested end to end outside CI. A first real call, on both headphones and speakers, is the check to do.
+- Automatically detecting a real call (Zoom, Teams, Meet).
+- Capture through speakers, without headphones.
+- Ask on macOS 27.
+- Note quality on a real multi-person meeting longer than the 5,000-character single pass, which is where the map-reduce path starts.
 
 ## Ideas for next time
 - Speaker separation within "Them" (diarization).
