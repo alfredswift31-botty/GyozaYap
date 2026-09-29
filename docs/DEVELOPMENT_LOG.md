@@ -89,6 +89,24 @@ The user did a 1.5-minute solo test: they started a recording by hand, played a 
 - Ask on macOS 27.
 - Note quality on a real multi-person meeting longer than the 5,000-character single pass, which is where the map-reduce path starts.
 
+## Next steps (agreed, not started)
+1. **Waiting on the user:** a real call on macOS 27 with 1.0.2, to confirm the crash fix. The quickest check is to join a call first, then open GyozaYap: the corner panel should appear and stay open.
+2. **Stop made-up action items:** have Apple Intelligence quote the transcript words behind each action item. Then drop any item whose quote isn't in the transcript, and blank any due date that isn't in the quote. This is a hard check rather than another prompt instruction. Test it against the 28 Sep transcript, where both action items were invented.
+3. **Better search for Ask on long meetings:** past about 6,000 characters (8–10 minutes), Ask only gives the model the lines that share exact words with the question. A synonym ("processor" vs "chip") finds nothing. A broad question ("what was decided overall?") falls back to roughly the first 8 minutes. Options are to search the notes as well as the transcript, or to match synonyms and word stems.
+4. **Show whether the call audio is arriving:** a level meter or indicator for the "Them" side, plus an early warning when it only gets digital silence. Today a missing permission and a real bug look the same.
+5. **Show live status in Settings:** whether Apple Intelligence is ready on this Mac right now, not just the fixed list of requirements.
+
+### Testing Apple Intelligence (plan given to the user, 28 Sep)
+Write down the right answers before recording, so the notes are scored against them instead of just read.
+- **Three recordings:**
+  - Planted items: a task with an owner and a date, a task with no date, a decision, and an unanswered question.
+  - A 15–20 minute recording, long enough to use the part-by-part path.
+  - A podcast only, where there should be no action items at all.
+- **Scoring:** mark each planted item found, missed or invented. Invented is the worst outcome.
+- **Ask:** check a specific detail, a trap question with no answer in the transcript, a false premise, a synonym on the long recording, and a broad question.
+- **Offline:** generate notes again with Wi-Fi off, to prove it runs on the Mac.
+- **Privacy:** results come back as notes plus the answer key. Transcripts of work meetings shouldn't be pasted into a cloud session unredacted.
+
 ## Ideas for next time
 - Speaker separation within "Them" (diarization).
 - Calendar integration to name meetings automatically.
