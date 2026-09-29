@@ -5,15 +5,23 @@ import SwiftUI
 /// calls without stealing focus from the call app.
 @MainActor
 final class FloatingPanel {
-    private var panel: NSPanel?
+    private(set) var panel: NSPanel?
     private var autoCloseTask: Task<Void, Never>?
 
     func show<Content: View>(_ content: Content, autoCloseAfter seconds: Double? = 120) {
         close()
 
-        let controller = NSHostingController(rootView: content)
-        controller.sizingOptions = [.preferredContentSize]
-        let size = controller.view.fittingSize
+        // Measure once, then stop the SwiftUI view from sizing the window.
+        // Letting it drive the panel's frame (sizingOptions) loops on macOS
+        // 27: each frame change moves the title bar's safe area, which asks
+        // for new constraints, which moves the frame again, until AppKit
+        // throws and the app aborts. The content has a fixed width and
+        // doesn't change height, so one measurement is enough. It ignores the
+        // safe area so the measured size is the drawn size; the top padding
+        // already leaves room for the close button.
+        let hostingView = NSHostingView(rootView: content.ignoresSafeArea())
+        let size = hostingView.fittingSize
+        hostingView.sizingOptions = []
 
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: size),
@@ -29,7 +37,7 @@ final class FloatingPanel {
         panel.becomesKeyOnlyIfNeeded = true
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentViewController = controller
+        panel.contentView = hostingView
         panel.setContentSize(size)
         if let screen = NSScreen.main {
             let visible = screen.visibleFrame
