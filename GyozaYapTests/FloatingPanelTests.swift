@@ -30,6 +30,8 @@ struct FloatingPanelTests {
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
         }
         #expect(panel.frame.size == measured)
+        // The SwiftUI view fills the panel rather than being clipped.
+        #expect(panel.contentView?.subviews.first?.frame.size == measured)
     }
 
     @Test func toastsShowAndClose() throws {

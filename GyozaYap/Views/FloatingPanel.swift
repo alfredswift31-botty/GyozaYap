@@ -11,17 +11,25 @@ final class FloatingPanel {
     func show<Content: View>(_ content: Content, autoCloseAfter seconds: Double? = 120) {
         close()
 
-        // Measure once, then stop the SwiftUI view from sizing the window.
-        // Letting it drive the panel's frame (sizingOptions) loops on macOS
-        // 27: each frame change moves the title bar's safe area, which asks
-        // for new constraints, which moves the frame again, until AppKit
-        // throws and the app aborts. The content has a fixed width and
-        // doesn't change height, so one measurement is enough. It ignores the
-        // safe area so the measured size is the drawn size; the top padding
-        // already leaves room for the close button.
+        // Measure once, then keep SwiftUI away from the panel's frame.
+        // Letting SwiftUI size the panel loops on macOS 27: each frame
+        // change moves the title bar's safe area, which asks for new
+        // constraints, which moves the frame again, until AppKit throws and
+        // the app aborts. Turning off sizingOptions isn't enough: as the
+        // window's content view, NSHostingView still resized the panel by the
+        // title bar's height (CI saw 370 pt become 402 pt). So the SwiftUI
+        // view sits inside a plain container and follows it by autoresizing.
+        // The content has a fixed width and doesn't change height, so one
+        // measurement is enough. It ignores the safe area so the measured
+        // size is the drawn size; the top padding leaves room for the close
+        // button.
         let hostingView = NSHostingView(rootView: content.ignoresSafeArea())
         let size = hostingView.fittingSize
         hostingView.sizingOptions = []
+        hostingView.frame = NSRect(origin: .zero, size: size)
+        hostingView.autoresizingMask = [.width, .height]
+        let container = NSView(frame: NSRect(origin: .zero, size: size))
+        container.addSubview(hostingView)
 
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: size),
@@ -37,7 +45,7 @@ final class FloatingPanel {
         panel.becomesKeyOnlyIfNeeded = true
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = hostingView
+        panel.contentView = container
         panel.setContentSize(size)
         if let screen = NSScreen.main {
             let visible = screen.visibleFrame
