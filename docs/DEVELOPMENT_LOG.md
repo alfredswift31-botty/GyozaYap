@@ -8,6 +8,7 @@ GyozaYap is a native macOS meeting notetaker. It detects calls, transcribes both
 |---|---|---|
 | 1.0 | 2026-09-25 | [v1.0](https://github.com/alfredswift31-botty/GyozaYap/releases/tag/v1.0) |
 | 1.0.1 | 2026-09-25 | [v1.0.1](https://github.com/alfredswift31-botty/GyozaYap/releases/tag/v1.0.1) |
+| 1.0.2 | 2026-09-29 | [v1.0.2](https://github.com/alfredswift31-botty/GyozaYap/releases/tag/v1.0.2) |
 
 ## The brief
 The goal was a Notion-AI-meeting-notes-style app, but better. It should:
@@ -56,9 +57,20 @@ The user asked whether AI was needed, then whether Apple Intelligence could be t
 - Adds the user's app icon. The artwork's rounded square was cut out, placed on Apple's macOS icon grid, and exported at every size.
 - CI now fails if the icon isn't compiled into the app.
 
+## 1.0.2: crash when a call is detected (macOS 27)
+The user's first real team call crashed the app several times. The crash report showed an abort in `-[NSWindow _postWindowNeedsUpdateConstraints]`, about 3 s after launch. The detector checks for calls every 3 s, so the app crashed as soon as it opened the "Record this call?" corner panel.
+
+- **Cause:** the panel let SwiftUI size its window (`NSHostingController` with `sizingOptions = .preferredContentSize`, in a titled panel with full-size content). Each frame change moved the title bar's safe area, which asked for new constraints, which moved the frame again. On macOS 27 this never settled, so AppKit threw.
+- **First attempt:** only turning off `sizingOptions` wasn't enough. A new test showed the hosting view, as the window's content view, still grew the panel by the title bar's height: 370 pt became 402 pt on macOS 26.
+- **Fix:** the SwiftUI view is measured once, then placed inside a plain container view and follows it by autoresizing. Only `FloatingPanel` sets the panel's frame. Commits 753df89 and 8a25d17.
+- **Tests:** `FloatingPanelTests` checks the panel keeps its measured size through layout passes. CI runs macOS 26, which can't reproduce the macOS 27 loop, so the proof is a real call on the user's Mac.
+- **CI:** a failing test now prints its failure text, taken from the result bundle. xcodebuild's log only names the test.
+- **Workaround for 1.0.1:** turn off call detection and start recordings from the main window. That path never opens the corner panel.
+- **Not the cause:** the user suspected the call app was blocking recording. The report rules this out: the crash is entirely in window layout, the abort was called by GyozaYap itself, and no other process touched it.
+
 ## Verified
 CI is green:
-- 31 unit tests pass, covering the audio timeline, transcription logic, formatting, storage, export and PDF, and the AI prompts.
+- 33 unit tests pass, covering the audio timeline, transcription logic, formatting, storage, export and PDF, and the AI prompts.
 - The Release build passes.
 - The built app is checked for its privacy strings, entitlements, the weak link to FoundationModels, the icon, and the minimum macOS version.
 
@@ -71,7 +83,8 @@ The user did a 1.5-minute solo test: they started a recording by hand, played a 
 - A first attempt played the podcast from a phone. That audio isn't Mac system audio, so there was no "Them", which is expected. Worth a line in the README.
 
 ## Not verified
-- Automatically detecting a real call (Zoom, Teams, Meet).
+- The 1.0.2 fix, on a real call under macOS 27. Detection itself does work: it found the call, and the panel it then opened is what crashed.
+- Capture when a call app switches audio devices mid-call, for example a Bluetooth headset going into call mode.
 - Capture through speakers, without headphones.
 - Ask on macOS 27.
 - Note quality on a real multi-person meeting longer than the 5,000-character single pass, which is where the map-reduce path starts.
