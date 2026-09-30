@@ -14,6 +14,11 @@ struct MeetingDetailView: View {
     @State private var isAsking = false
     @State private var transcriptFilter = ""
 
+    init(meetingID: Meeting.ID, initialTab: Tab = .notes) {
+        self.meetingID = meetingID
+        _tab = State(initialValue: initialTab)
+    }
+
     nonisolated enum Tab: String, CaseIterable, Identifiable {
         case notes = "Notes"
         case transcript = "Transcript"

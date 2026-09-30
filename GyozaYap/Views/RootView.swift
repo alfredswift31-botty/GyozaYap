@@ -8,6 +8,10 @@ struct RootView: View {
     @State private var search = ""
     @State private var pendingDelete: Meeting?
 
+    init(initialSelection: Meeting.ID? = nil) {
+        _selection = State(initialValue: initialSelection)
+    }
+
     var body: some View {
         NavigationSplitView {
             sidebar

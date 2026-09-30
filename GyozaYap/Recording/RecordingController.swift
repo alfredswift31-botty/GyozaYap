@@ -51,6 +51,21 @@ final class RecordingController: ObservableObject {
         self.settings = settings
     }
 
+    #if DEBUG
+    /// Puts the controller into a recording state with sample content, for
+    /// UI snapshot tests. Debug builds only; no capture runs.
+    func showPreviewRecording(meeting: Meeting, segments: [TranscriptSegment], markers: [Bookmark],
+                              partial: [Speaker: String], notes: String, startedAt: Date) {
+        phase = .recording
+        liveMeeting = meeting
+        liveSegments = segments
+        liveMarkers = markers
+        partialText = partial
+        liveNotes = notes
+        recordingStartedAt = startedAt
+    }
+    #endif
+
     func requestStart(sourceApp: String?) {
         guard phase == .idle else { return }
         pendingStart = StartRequest(sourceApp: sourceApp)
