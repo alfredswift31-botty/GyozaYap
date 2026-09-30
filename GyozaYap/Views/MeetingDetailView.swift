@@ -167,9 +167,9 @@ struct MeetingDetailView: View {
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 120)
                         .fieldSurface()
+                        .measure()
                 }
             }
-            .frame(maxWidth: Theme.Space.measure, alignment: .leading)
             .padding(.horizontal, Theme.Space.page)
             .padding(.top, Theme.Space.xxl)
             .padding(.bottom, Theme.Space.page)
@@ -187,6 +187,7 @@ struct MeetingDetailView: View {
                     .lineSpacing(Theme.Typeface.bodyLineSpacing)
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
+                    .measure()
             }
             bulletSection("Decisions", notes.decisions)
             if !notes.actionItems.isEmpty {
@@ -220,6 +221,7 @@ struct MeetingDetailView: View {
                 .font(Theme.Typeface.meta)
                 .foregroundStyle(Theme.inkTertiary)
                 .fixedSize(horizontal: false, vertical: true)
+                .measure()
         }
     }
 
@@ -261,6 +263,7 @@ struct MeetingDetailView: View {
             .onTapGesture { done.wrappedValue.toggle() }
             .accessibilityHidden(true)
         }
+        .measure()
     }
 
     @ViewBuilder
@@ -347,7 +350,7 @@ struct MeetingDetailView: View {
                 .foregroundStyle(Theme.ink)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: Theme.Space.measure, alignment: .leading)
+                .measure()
         }
         .padding(.vertical, Theme.Space.m)
         .accessibilityElement(children: .combine)
@@ -363,6 +366,7 @@ struct MeetingDetailView: View {
                     .lineSpacing(Theme.Typeface.bodyLineSpacing)
                     .foregroundStyle(Theme.inkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .measure()
 
                 HStack(spacing: Theme.Space.s) {
                     TextField("Your question", text: $question)
@@ -374,6 +378,7 @@ struct MeetingDetailView: View {
                         .buttonStyle(.primary)
                         .disabled(question.trimmingCharacters(in: .whitespaces).isEmpty || isAsking || meeting.segments.isEmpty)
                 }
+                .measure()
 
                 if isAsking {
                     HStack(spacing: Theme.Space.s) {
@@ -394,12 +399,11 @@ struct MeetingDetailView: View {
                             .foregroundStyle(Theme.ink)
                             .textSelection(.enabled)
                             .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .measure()
                     }
                     .padding(.top, Theme.Space.s)
                 }
             }
-            .frame(maxWidth: Theme.Space.measure, alignment: .leading)
             .padding(.horizontal, Theme.Space.page)
             .padding(.top, Theme.Space.xxl)
             .padding(.bottom, Theme.Space.page)
@@ -516,6 +520,13 @@ struct MeetingDetailView: View {
 
 // MARK: - Page grid
 
+private extension View {
+    /// Keeps running text to a readable measure; rules and labels still run to the page margin.
+    func measure() -> some View {
+        frame(maxWidth: Theme.Space.measure, alignment: .leading)
+    }
+}
+
 /// Column widths shared by the notes lists and the transcript, so times and
 /// text line up from one tab to the next.
 private enum GridColumn {
@@ -542,6 +553,7 @@ private struct GutterRow<Content: View>: View {
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .measure()
     }
 }
 
