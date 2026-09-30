@@ -252,7 +252,9 @@ struct EmptyState<Action: View>: View {
                 .padding(.top, Theme.Space.s)
         }
         .padding(Theme.Space.page)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+        // A floor on the width: measured very narrow, the wrapping message asks
+        // for more height than the window has and a split view lays out off screen.
+        .frame(minWidth: 360 + 2 * Theme.Space.page, maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
     }
 }
 
