@@ -9,6 +9,8 @@ GyozaYap is a native macOS meeting notetaker. It detects calls, transcribes both
 | 1.0 | 2026-09-25 | [v1.0](https://github.com/alfredswift31-botty/GyozaYap/releases/tag/v1.0) |
 | 1.0.1 | 2026-09-25 | [v1.0.1](https://github.com/alfredswift31-botty/GyozaYap/releases/tag/v1.0.1) |
 | 1.0.2 | 2026-09-29 | [v1.0.2](https://github.com/alfredswift31-botty/GyozaYap/releases/tag/v1.0.2) |
+| 1.1 | 2026-09-30 | [v1.1](https://github.com/alfredswift31-botty/GyozaYap/releases/tag/v1.1) |
+| 1.1.1 | 2026-10-01 | [v1.1.1](https://github.com/alfredswift31-botty/GyozaYap/releases/tag/v1.1.1) |
 
 ## The brief
 The goal was a Notion-AI-meeting-notes-style app, but better. It should:
@@ -105,11 +107,12 @@ The user reported that the sidebar search field had no blinking cursor. Everythi
 - **Cause:** macOS draws the insertion point in the app's accent colour. 1.1 set the dark accent to graphite #585857. Sampled from the user's screenshot, the search field is #545151, a contrast of 1.1:1. Every text field was affected; the search field was simply the worst.
 - **Fix:** the dark accent is now #AAAAAE, 3.4:1 on the search field. A selected sidebar row is filled with the accent, so its text now uses `Theme.inkInverse` rather than the system's light hierarchical styles.
 - **Tests:** `AccentColorTests` check the accent's contrast as the cursor (on the search field and on `Theme.surface`) and as a selection fill (under `inkInverse`), in both appearances. The test was pushed first and failed on 1.1 (run 36791552411: 1.10, 2.44 and 2.65); it passes with the fix (run 36791576120).
-- **Unverified:** whether the checkbox's white tick reads well on the lighter dark accent (action items).
+- **Verified by the user** after installing 1.1.1: the cursor now shows in the search field.
+- **Unverified:** whether the checkbox's white tick reads well on the lighter dark accent (action items), and the selected sidebar row's dark text on the lighter fill.
 
 ## Verified
-CI is green:
-- 33 unit tests pass, covering the audio timeline, transcription logic, formatting, storage, export and PDF, and the AI prompts.
+CI is green (1.1.1):
+- The unit tests pass, including the snapshot renders (every screen, light and dark) and the accent-contrast checks. Before 1.1 there were 33, covering the audio timeline, transcription logic, formatting, storage, export and PDF, and the AI prompts.
 - The Release build passes.
 - The built app is checked for its privacy strings, entitlements, the weak link to FoundationModels, the icon, and the minimum macOS version.
 
@@ -122,7 +125,7 @@ The user did a 1.5-minute solo test: they started a recording by hand, played a 
 - A first attempt played the podcast from a phone. That audio isn't Mac system audio, so there was no "Them", which is expected. Worth a line in the README.
 
 ## Not verified
-- The 1.1 redesign on a real Mac: the user checked the library screen (it looks right). Still unchecked: the menu bar menu's sections (it's a real NSMenu, so no snapshot shows it), and the text tab row with Full Keyboard Access and VoiceOver.
+- The 1.1 redesign on a real Mac: the user checked the library screen and the search cursor (1.1.1). Still unchecked: the meeting, recording and start-panel screens with real data, the checkbox tick and selected-row text on the lighter dark accent, the menu bar menu's sections (it's a real NSMenu, so no snapshot shows it), and the text tab row with Full Keyboard Access and VoiceOver.
 - The 1.0.2 fix, on a real call under macOS 27. Detection itself does work: it found the call, and the panel it then opened is what crashed.
 - Capture when a call app switches audio devices mid-call, for example a Bluetooth headset going into call mode.
 - Capture through speakers, without headphones.
@@ -130,7 +133,7 @@ The user did a 1.5-minute solo test: they started a recording by hand, played a 
 - Note quality on a real multi-person meeting longer than the 5,000-character single pass, which is where the map-reduce path starts.
 
 ## Next steps (agreed, not started)
-1. **Waiting on the user:** a real call on macOS 27 with 1.0.2, to confirm the crash fix. The quickest check is to join a call first, then open GyozaYap: the corner panel should appear and stay open.
+1. **Waiting on the user:** a real call on macOS 27 with 1.1.1 (it carries the 1.0.2 fix), to confirm the crash fix. The quickest check is to join a call first, then open GyozaYap: the corner panel should appear and stay open.
 2. **Stop made-up action items:** have Apple Intelligence quote the transcript words behind each action item. Then drop any item whose quote isn't in the transcript, and blank any due date that isn't in the quote. This is a hard check rather than another prompt instruction. Test it against the 28 Sep transcript, where both action items were invented.
 3. **Better search for Ask on long meetings:** past about 6,000 characters (8–10 minutes), Ask only gives the model the lines that share exact words with the question. A synonym ("processor" vs "chip") finds nothing. A broad question ("what was decided overall?") falls back to roughly the first 8 minutes. Options are to search the notes as well as the transcript, or to match synonyms and word stems.
 4. **Show whether the call audio is arriving:** a level meter or indicator for the "Them" side, plus an early warning when it only gets digital silence. Today a missing permission and a real bug look the same.
@@ -147,10 +150,19 @@ Write down the right answers before recording, so the notes are scored against t
 - **Offline:** generate notes again with Wi-Fi off, to prove it runs on the Mac.
 - **Privacy:** results come back as notes plus the answer key. Transcripts of work meetings shouldn't be pasted into a cloud session unredacted.
 
+6. **Redesign follow-ups:**
+   - Inline errors for Ask and notes generation, in `inkSecondary` next to the thing that failed. Today they still use the "Something went wrong" alert, which the 1.1 guardrails kept as is.
+   - Consider restoring a draggable divider on the recording screen. 1.1 fixed the notes column at 260–320 pt, because the old split view was wider than the detail pane and clipped Stop.
+   - Optional: move `GutterRow` and `measure()` out of MeetingDetailView into Theme, if other screens use the timestamp-column grid.
+
 ## Ideas for next time
 - Speaker separation within "Them" (diarization).
 - Calendar integration to name meetings automatically.
 
 ## Working notes
 - Work goes on `develop`; releases come from `main`.
+- Design changes follow `docs/DESIGN.md`, using the tokens and components in `GyozaYap/Design/Theme.swift`. To review one:
+  1. Push, and CI renders every screen in `UISnapshotTests`.
+  2. Fetch the build job's log.
+  3. Run `python3 scripts/decode-snapshots.py <log> .snapshots/<name>` and look at the JPEGs. `.snapshots/` is gitignored.
 - To release: run Actions › Build › Run workflow on `main` with `release_tag: vX.Y.Z`.
