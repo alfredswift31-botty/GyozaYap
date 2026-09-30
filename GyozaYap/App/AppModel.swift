@@ -131,6 +131,12 @@ struct MenuBarIcon: View {
     }
 }
 
+/// The menu bar extra's menu. It is a real `NSMenu` (the extra uses the menu
+/// style), so the layout is typographic within what a menu can draw: the
+/// state as a section header, the live meeting's title and start time as
+/// plain lines under it, then the actions. Custom shapes such as `LiveDot`
+/// don't draw in a menu; the status item's filled record symbol is the live
+/// signal.
 struct MenuBarContent: View {
     @ObservedObject var recorder: RecordingController
     @Environment(\.openWindow) private var openWindow
@@ -138,28 +144,43 @@ struct MenuBarContent: View {
     var body: some View {
         switch recorder.phase {
         case .recording:
-            Text("Recording: \(recorder.liveMeeting?.title ?? "")")
-            Button("Stop recording") {
-                Task { await recorder.stop() }
+            Section("Recording") {
+                Text(recorder.liveMeeting?.title ?? "")
+                if let started = recorder.recordingStartedAt {
+                    Text("Since \(started.formatted(date: .omitted, time: .shortened))")
+                }
+                Button("Stop recording") {
+                    Task { await recorder.stop() }
+                }
             }
         case .starting:
-            Text("Starting…")
+            Section("Recording") {
+                Text("Starting…")
+            }
         case .stopping:
-            Text("Saving…")
+            Section("Recording") {
+                Text("Saving…")
+            }
         case .idle:
-            Button("New recording…") {
-                showMainWindow()
-                recorder.requestStart(sourceApp: nil)
+            Section {
+                Button("New recording…") {
+                    showMainWindow()
+                    recorder.requestStart(sourceApp: nil)
+                }
             }
         }
-        Button("Open GyozaYap") { showMainWindow() }
-        Divider()
-        SettingsLink {
-            Text("Settings…")
+        // Sections, not dividers: the menu separates them itself, and a
+        // header in the recording section would otherwise sit under a double rule.
+        Section {
+            Button("Open GyozaYap") { showMainWindow() }
+            SettingsLink {
+                Text("Settings…")
+            }
         }
-        Divider()
-        Button("Quit GyozaYap") { NSApp.terminate(nil) }
-            .keyboardShortcut("q")
+        Section {
+            Button("Quit GyozaYap") { NSApp.terminate(nil) }
+                .keyboardShortcut("q")
+        }
     }
 
     private func showMainWindow() {

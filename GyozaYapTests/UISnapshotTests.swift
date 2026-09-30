@@ -200,4 +200,26 @@ struct UISnapshotTests {
         try Snapshot.render(RecordingToast(appName: "Microsoft Teams", onStop: {}, onDismiss: {}),
                             name: "08-recording-toast", size: CGSize(width: 360, height: 150), dark: dark)
     }
+
+    /// The library column on its own, with a meeting from today and one from
+    /// yesterday added to the fixtures so every kind of group heading shows.
+    @Test(arguments: [false, true])
+    func sidebar(dark: Bool) throws {
+        let meeting = SnapshotFixtures.meeting
+        var today = Meeting(title: "Standup", startedAt: Date().addingTimeInterval(-2 * 3_600))
+        today.duration = 14 * 60 + 3
+        var yesterday = Meeting(title: "Hiring loop debrief: senior iOS engineer", startedAt: Date().addingTimeInterval(-86_400))
+        yesterday.duration = 47 * 60 + 38
+        yesterday.notes = meeting.notes
+        let environment = SnapshotFixtures.environment(meetings: [today, yesterday, meeting] + SnapshotFixtures.older)
+        try Snapshot.render(MeetingSidebar(selection: .constant(meeting.id)).snapshotEnvironment(environment),
+                            name: "20-sidebar", size: CGSize(width: 280, height: 720), dark: dark)
+    }
+
+    /// The main window with a library but nothing selected.
+    @Test(arguments: [false, true])
+    func noSelection(dark: Bool) throws {
+        let environment = SnapshotFixtures.environment(meetings: [SnapshotFixtures.meeting] + SnapshotFixtures.older)
+        try Snapshot.render(RootView().snapshotEnvironment(environment), name: "21-no-selection", size: Self.window, dark: dark)
+    }
 }
