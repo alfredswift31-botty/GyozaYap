@@ -227,13 +227,4 @@ struct UISnapshotTests {
         let environment = SnapshotFixtures.environment(meetings: [SnapshotFixtures.meeting] + SnapshotFixtures.older)
         try Snapshot.render(RootView().snapshotEnvironment(environment), name: "21-no-selection", size: Self.window, dark: dark)
     }
-
-    // TEMPORARY: confirms that EmptyState with a long message in a split
-    // view's detail breaks the layout without a minimum width.
-    @Test func diagnosticLongMessage() throws {
-        let state = EmptyState(word: "no meetings",
-                               message: "Start a recording, or join a call and GyozaYap will offer to record it. Everything is transcribed on this Mac.")
-        try Snapshot.render(NavigationSplitView { List { Text("Side") } } detail: { state.background(Theme.canvas) },
-                            name: "a7-long-message", size: CGSize(width: 1100, height: 500), dark: false)
-    }
 }
