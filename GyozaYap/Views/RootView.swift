@@ -138,7 +138,6 @@ struct MeetingSidebar: View {
                     SectionLabel(group.title)
                         .padding(.leading, 2)
                         .padding(.trailing, Theme.Space.m)
-                        .padding(.top, Theme.Space.xs)
                 }
             }
         }
@@ -312,7 +311,7 @@ private struct SidebarNote: View {
 /// The detail pane with a library but no meeting open, set like the poster:
 /// the library's figures in a top row of columns, and one lowercase line at
 /// the bottom saying what to do.
-private struct LibraryOverview<Action: View>: View {
+struct LibraryOverview<Action: View>: View {
     let meetings: [Meeting]
     @ViewBuilder var action: () -> Action
 
@@ -351,7 +350,7 @@ private struct LibraryOverview<Action: View>: View {
 
 /// "Start recording" with its shortcut beside it, in the weight the screen
 /// calls for: filled when it is the screen's one action, quiet otherwise.
-private struct StartAction: View {
+struct StartAction: View {
     enum Style {
         case primary
         case quiet
