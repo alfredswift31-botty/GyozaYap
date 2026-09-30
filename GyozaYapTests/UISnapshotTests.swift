@@ -17,15 +17,26 @@ enum Snapshot {
             .environment(\.colorScheme, dark ? .dark : .light))
         host.frame = CGRect(origin: .zero, size: size)
         host.appearance = appearance
+        host.wantsLayer = true
         let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = appearance
         window.contentView = host
         host.layoutSubtreeIfNeeded()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.4))
+        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
         host.layoutSubtreeIfNeeded()
         window.displayIfNeeded()
-        let bitmap = try #require(host.bitmapImageRepForCachingDisplay(in: host.bounds))
-        host.cacheDisplay(in: host.bounds, to: bitmap)
+        // Render the layer tree: cacheDisplay only captures AppKit drawing and
+        // drops SwiftUI's own layers (text and shapes came out blank).
+        let scale: CGFloat = 2
+        let bitmap = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(size.width * scale), pixelsHigh: Int(size.height * scale),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        let context = try #require(NSGraphicsContext(bitmapImageRep: bitmap))
+        let layer = try #require(host.layer)
+        context.cgContext.scaleBy(x: scale, y: scale)
+        layer.render(in: context.cgContext)
+        context.flushGraphics()
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: directory.appendingPathComponent("\(name)-\(dark ? "dark" : "light").png"))
