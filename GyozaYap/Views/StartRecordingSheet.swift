@@ -28,7 +28,7 @@ struct StartRecordingSheet: View {
 
             VStack(alignment: .leading, spacing: Theme.Space.s) {
                 Text("Title").labelStyle()
-                TextField("Title", text: $title, prompt: Text(defaultTitle))
+                TextField("Title", text: $title, prompt: Text(defaultTitle).foregroundStyle(Theme.inkTertiary))
                     .textFieldStyle(.plain)
                     .font(Theme.Typeface.body)
                     .foregroundStyle(Theme.ink)

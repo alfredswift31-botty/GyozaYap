@@ -16,7 +16,7 @@ struct RecordingView: View {
                     .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 Hairline(axis: .vertical)
                 notesPad
-                    .frame(minWidth: 240, idealWidth: 300, maxWidth: 300, maxHeight: .infinity, alignment: .topLeading)
+                    .frame(minWidth: 260, idealWidth: 320, maxWidth: 320, maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -193,7 +193,9 @@ struct RecordingView: View {
                     .padding(.top, Theme.Space.xs)
             }
         }
-        .padding(Theme.Space.xl)
+        .padding(.leading, Theme.Space.xl)
+        .padding(.trailing, Theme.Space.page)
+        .padding(.vertical, Theme.Space.xl)
     }
 
     private func markerButton(_ kind: Bookmark.Kind, key: KeyEquivalent) -> some View {

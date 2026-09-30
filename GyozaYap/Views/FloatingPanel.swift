@@ -130,7 +130,8 @@ struct RecordingToast: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("Let the others know. Transcription happens on this Mac.")
+            Text("Let the others know.\nTranscription happens on this Mac.")
+                .lineSpacing(2)
                 .font(Theme.Typeface.meta)
                 .foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
