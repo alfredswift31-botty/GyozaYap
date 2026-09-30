@@ -31,7 +31,6 @@ struct StartRecordingSheet: View {
                 TextField("Title", text: $title, prompt: Text(defaultTitle).foregroundStyle(Theme.inkTertiary))
                     .textFieldStyle(.plain)
                     .font(Theme.Typeface.body)
-                    .foregroundStyle(Theme.ink)
                     .labelsHidden()
                     .lineLimit(1)
                     .fieldSurface()
