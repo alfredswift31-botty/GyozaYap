@@ -18,13 +18,10 @@ enum Snapshot {
         host.frame = CGRect(origin: .zero, size: size)
         host.appearance = appearance
         host.wantsLayer = true
-        // Borderless and ordered in off screen: a window that is never shown
-        // gets no display cycles, and a titled one draws its chrome into the layer.
-        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        // Not ordered in: an on-screen window flips the layer geometry.
+        let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = appearance
         window.contentView = host
-        window.setFrameOrigin(NSPoint(x: -20_000, y: -20_000))
-        window.orderFrontRegardless()
         for _ in 0..<3 {
             host.layoutSubtreeIfNeeded()
             window.displayIfNeeded()
@@ -41,12 +38,17 @@ enum Snapshot {
         let context = try #require(NSGraphicsContext(bitmapImageRep: bitmap))
         let layer = try #require(host.layer)
         context.cgContext.scaleBy(x: scale, y: scale)
+        // The window background isn't part of the host's layers; without it
+        // dark text lands on transparent pixels that the JPEG step turns white.
+        var background = NSColor.windowBackgroundColor.cgColor
+        appearance?.performAsCurrentDrawingAppearance { background = NSColor.windowBackgroundColor.cgColor }
+        context.cgContext.setFillColor(background)
+        context.cgContext.fill(CGRect(origin: .zero, size: size))
         layer.render(in: context.cgContext)
         context.flushGraphics()
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: directory.appendingPathComponent("\(name)-\(dark ? "dark" : "light").png"))
-        window.orderOut(nil)
         window.contentView = nil
         return data
     }
