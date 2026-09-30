@@ -95,7 +95,7 @@ struct RootView: View {
                     recorder.requestStart(sourceApp: nil)
                 }
             }
-            .background(Theme.canvas)
+            .detailPlaceholder()
         } else {
             LibraryOverview(meetings: store.meetings) {
                 StartAction(style: .quiet, isEnabled: recorder.phase == .idle) {
@@ -311,7 +311,7 @@ private struct SidebarNote: View {
 /// The detail pane with a library but no meeting open, set like the poster:
 /// the library's figures in a top row of columns, and one lowercase line at
 /// the bottom saying what to do.
-struct LibraryOverview<Action: View>: View {
+private struct LibraryOverview<Action: View>: View {
     let meetings: [Meeting]
     @ViewBuilder var action: () -> Action
 
@@ -328,7 +328,7 @@ struct LibraryOverview<Action: View>: View {
             }
             .padding(Theme.Space.page)
         }
-        .background(Theme.canvas)
+        .detailPlaceholder()
     }
 
     private func figures(includeStorage: Bool) -> some View {
@@ -348,9 +348,21 @@ struct LibraryOverview<Action: View>: View {
     }
 }
 
+private extension View {
+    /// Fills the detail pane on the canvas, never narrower than a readable
+    /// column. The split view measures its detail at very narrow widths; at
+    /// those the display word and the message wrap a word per line and ask
+    /// for more height than the window has, which pushes the whole split
+    /// view off the window. A floor on the width keeps that measurement sane.
+    func detailPlaceholder() -> some View {
+        self.frame(minWidth: 440, maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.canvas)
+    }
+}
+
 /// "Start recording" with its shortcut beside it, in the weight the screen
 /// calls for: filled when it is the screen's one action, quiet otherwise.
-struct StartAction: View {
+private struct StartAction: View {
     enum Style {
         case primary
         case quiet

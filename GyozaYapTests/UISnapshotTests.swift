@@ -228,50 +228,12 @@ struct UISnapshotTests {
         try Snapshot.render(RootView().snapshotEnvironment(environment), name: "21-no-selection", size: Self.window, dark: dark)
     }
 
-    // TEMPORARY diagnostics: why the detail placeholders render blank.
-    @Test(arguments: [false])
-    func diagnostics(dark: Bool) throws {
-        let state = EmptyState(word: "no meetings", message: "Start a recording.") {
-            Button("Start recording") {}.buttonStyle(.primary)
-        }
-        try Snapshot.render(state, name: "90-diag-plain", size: CGSize(width: 800, height: 400), dark: dark)
-        try Snapshot.render(state.background(Theme.canvas), name: "91-diag-canvas", size: CGSize(width: 800, height: 400), dark: dark)
-        try Snapshot.render(NavigationSplitView { Text("Side") } detail: { state.background(Theme.canvas) },
-                            name: "92-diag-split", size: CGSize(width: 1100, height: 500), dark: dark)
-        try Snapshot.render(NavigationSplitView { Text("Side") } detail: {
-            VStack(alignment: .leading) { Text("no meetings").displayStyle(); Text("Start a recording.") }
-                .padding(40).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }, name: "93-diag-split-top", size: CGSize(width: 1100, height: 500), dark: dark)
-        let size = CGSize(width: 1100, height: 500)
-        let figures = HStack(alignment: .top, spacing: 32) {
-            MetaPair(label: "Library", value: "5 meetings")
-            MetaPair(label: "Recorded", value: "2:31:12", monospaced: true)
-        }
-        try Snapshot.render(NavigationSplitView { List { Text("Side") } } detail: {
-            state.overlay(alignment: .topLeading) { figures.fixedSize().padding(40) }.background(Theme.canvas)
-        }, name: "a0-overlay-fixed", size: size, dark: dark)
-        try Snapshot.render(NavigationSplitView { List { Text("Side") } } detail: {
-            state.overlay(alignment: .topLeading) { figures.padding(40) }.background(Theme.canvas)
-        }, name: "a1-overlay", size: size, dark: dark)
-        try Snapshot.render(NavigationSplitView { List { Text("Side") } } detail: {
-            state.overlay(alignment: .topLeading) { ViewThatFits(in: .horizontal) { Text("wide"); Text("w") }.padding(40) }
-                .background(Theme.canvas)
-        }, name: "a2-viewthatfits", size: size, dark: dark)
-        try Snapshot.render(NavigationSplitView { List { Text("Side") } } detail: {
-            VStack(alignment: .leading, spacing: 0) { figures.padding(40); state }.background(Theme.canvas)
-        }, name: "a3-vstack", size: size, dark: dark)
-        try Snapshot.render(NavigationSplitView { MeetingSidebar(selection: .constant(nil)) } detail: {
-            state.background(Theme.canvas)
-        }.snapshotEnvironment(SnapshotFixtures.environment(meetings: [])), name: "a4-sidebar-empty", size: size, dark: dark)
-        try Snapshot.render(NavigationSplitView {
-            List { Text("Side") }.overlay(alignment: .topLeading) { Text("Library").labelStyle() }
-        } detail: {
-            state.background(Theme.canvas)
-        }, name: "a5-list-overlay", size: size, dark: dark)
-        try Snapshot.render(NavigationSplitView {
-            List { Text("Side") }.navigationSplitViewColumnWidth(min: 240, ideal: 280)
-        } detail: {
-            state.background(Theme.canvas)
-        }, name: "a6-column-width", size: size, dark: dark)
+    // TEMPORARY: confirms that EmptyState with a long message in a split
+    // view's detail breaks the layout without a minimum width.
+    @Test func diagnosticLongMessage() throws {
+        let state = EmptyState(word: "no meetings",
+                               message: "Start a recording, or join a call and GyozaYap will offer to record it. Everything is transcribed on this Mac.")
+        try Snapshot.render(NavigationSplitView { List { Text("Side") } } detail: { state.background(Theme.canvas) },
+                            name: "a7-long-message", size: CGSize(width: 1100, height: 500), dark: false)
     }
 }
