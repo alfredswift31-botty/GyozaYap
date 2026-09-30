@@ -227,4 +227,20 @@ struct UISnapshotTests {
         let environment = SnapshotFixtures.environment(meetings: [SnapshotFixtures.meeting] + SnapshotFixtures.older)
         try Snapshot.render(RootView().snapshotEnvironment(environment), name: "21-no-selection", size: Self.window, dark: dark)
     }
+
+    // TEMPORARY diagnostics: why the detail placeholders render blank.
+    @Test(arguments: [false])
+    func diagnostics(dark: Bool) throws {
+        let state = EmptyState(word: "no meetings", message: "Start a recording.") {
+            Button("Start recording") {}.buttonStyle(.primary)
+        }
+        try Snapshot.render(state, name: "90-diag-plain", size: CGSize(width: 800, height: 400), dark: dark)
+        try Snapshot.render(state.background(Theme.canvas), name: "91-diag-canvas", size: CGSize(width: 800, height: 400), dark: dark)
+        try Snapshot.render(NavigationSplitView { Text("Side") } detail: { state.background(Theme.canvas) },
+                            name: "92-diag-split", size: CGSize(width: 1100, height: 500), dark: dark)
+        try Snapshot.render(NavigationSplitView { Text("Side") } detail: {
+            VStack(alignment: .leading) { Text("no meetings").displayStyle(); Text("Start a recording.") }
+                .padding(40).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }, name: "93-diag-split-top", size: CGSize(width: 1100, height: 500), dark: dark)
+    }
 }

@@ -133,8 +133,12 @@ struct MeetingSidebar: View {
                             }
                     }
                 } header: {
+                    // Inset to the rows' text on the left and their trailing
+                    // labels on the right, so the rule ends where the column does.
                     SectionLabel(group.title)
-                        .padding(.top, Theme.Space.s)
+                        .padding(.leading, 2)
+                        .padding(.trailing, Theme.Space.m)
+                        .padding(.top, Theme.Space.xs)
                 }
             }
         }
@@ -197,7 +201,7 @@ private struct MeetingRow: View {
         case .weekday:
             return date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
         case .day:
-            return date.formatted(.dateTime.day().month(.abbreviated).hour().minute())
+            return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
         }
     }
 }
