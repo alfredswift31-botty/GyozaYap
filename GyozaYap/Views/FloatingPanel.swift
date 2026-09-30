@@ -74,33 +74,45 @@ final class FloatingPanel {
 }
 
 /// A short message with an OK button, for errors outside the main window.
+/// Fixed width; the panel measures it once, so nothing here changes height.
 struct MessageToast: View {
     let title: String
     let message: String
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label(title, systemImage: "exclamationmark.triangle.fill")
-                .font(.headline)
-                .foregroundStyle(.orange)
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s) {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(Theme.live)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(Theme.Typeface.heading)
             Text(message)
-                .font(.callout)
+                .font(Theme.Typeface.meta)
+                .lineSpacing(2)
+                .foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
                 Button("OK", action: onDismiss)
+                    .buttonStyle(.primary)
                     .keyboardShortcut(.defaultAction)
             }
+            .padding(.top, Theme.Space.s)
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 26)
-        .padding(.bottom, 16)
-        .frame(width: 360)
+        .padding(.horizontal, Theme.Space.xl)
+        .padding(.top, Theme.Space.xxl)
+        .padding(.bottom, Theme.Space.l)
+        .frame(width: 360, alignment: .leading)
     }
 }
 
-/// Shown when a recording started from the corner panel.
+/// Shown when a recording started from the corner panel. Fixed width; the
+/// panel measures it once, so nothing here changes height.
 struct RecordingToast: View {
     let appName: String
     let onStop: () -> Void
@@ -109,29 +121,40 @@ struct RecordingToast: View {
     @State private var copied = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("Recording your \(appName) call", systemImage: "record.circle.fill")
-                .font(.headline)
-                .foregroundStyle(.red)
-            Text("Let the others know. Transcription happens on this Mac.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            HStack {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            HStack(alignment: .center, spacing: Theme.Space.s) {
+                LiveDot()
+                Text("Recording your \(appName) call")
+                    .font(Theme.Typeface.heading)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("Let the others know.\nTranscription happens on this Mac.")
+                .lineSpacing(2)
+                .font(Theme.Typeface.meta)
+                .foregroundStyle(Theme.inkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: Theme.Space.s) {
                 Button(copied ? "Copied" : "Copy notice") {
                     let pasteboard = NSPasteboard.general
                     pasteboard.clearContents()
                     pasteboard.setString(ConsentNotice.chatMessage, forType: .string)
                     copied = true
                 }
-                Spacer()
+                .buttonStyle(.quiet)
+                Spacer(minLength: Theme.Space.s)
                 Button("Stop", role: .destructive, action: onStop)
+                    .buttonStyle(.live)
                 Button("OK", action: onDismiss)
+                    .buttonStyle(.quiet)
                     .keyboardShortcut(.defaultAction)
             }
+            .padding(.top, Theme.Space.s)
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 26)
-        .padding(.bottom, 16)
-        .frame(width: 360)
+        .padding(.horizontal, Theme.Space.xl)
+        .padding(.top, Theme.Space.xxl)
+        .padding(.bottom, Theme.Space.l)
+        .frame(width: 360, alignment: .leading)
     }
 }
