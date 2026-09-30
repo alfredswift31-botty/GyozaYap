@@ -2,6 +2,21 @@
 
 Make meeting yapping fun. GyozaYap is a native macOS meeting notetaker. It notices when your call starts, transcribes both you and everyone else **on your Mac**, and turns the yap into a summary, decisions, action items and a searchable transcript. No bot joins your call, and no account or API key is needed.
 
+## Version 1.1
+
+A new look. GyozaYap now uses a Swiss, type-led design: black and white, one typeface, clear labels over values, thin rules instead of boxes, and lots of space. Red appears only while recording and on Stop.
+
+- **Library:** meetings grouped by Today, Yesterday, This week and month, with each meeting's date and length. "NOTES" marks meetings with AI notes.
+- **Meeting:** the title with DATE / DURATION / SOURCE / MODE columns, a text tab row (Notes, Transcript, Ask), and notes set in labelled sections with timestamps in a column on the left.
+- **Recording:** the elapsed time is the one big thing on screen. The Stop button is no longer cut off in narrow windows, and the marker buttons show their shortcuts. The notes column is now a fixed width instead of a draggable divider.
+- **Transcript:** Me and Them are told apart by weight, not colour.
+- **"Record this call?" panel, toasts and Settings:** rebuilt in the same style.
+- Light and dark mode are both designed. CI renders every screen in both, so design changes are reviewed before release.
+
+## Version 1.0.2
+
+Fixes a crash on macOS 27 when a call was detected and the "Record this call?" panel opened.
+
 ## Version 1.0.1
 
 Adds the GyozaYap app icon.
@@ -24,7 +39,7 @@ When a call app starts using your microphone, a small panel appears in the corne
 
 - A live transcript that follows the conversation.
 - A notes pad for your own notes.
-- Marker buttons for the moment something matters: **★ Idea** (⌘1), **✓ Decision** (⌘2), **? Question** (⌘3). The AI treats these as strong hints.
+- Marker buttons for the moment something matters: **Idea** (⌘1), **Decision** (⌘2), **Question** (⌘3). The AI treats these as strong hints.
 - A menu bar icon so you always know it's recording. ⌘. stops.
 - Autosave every 30 seconds, so a crash can't eat your meeting.
 

@@ -68,6 +68,37 @@ The user's first real team call crashed the app several times. The crash report 
 - **Workaround for 1.0.1:** turn off call detection and start recordings from the main window. That path never opens the corner panel.
 - **Not the cause:** the user suspected the call app was blocking recording. The report rules this out: the crash is entirely in window layout, the abort was called by GyozaYap itself, and no other process touched it.
 
+## 1.1: redesign (30 Sep 2026)
+The user asked for a modern minimalist redesign: the old UI was "flat and boring". They asked to use the taste-skill (github.com/Leonxlnx/taste-skill), and gave a Swiss poster as a reference: black ground, a huge lowercase word, small bold uppercase labels in columns, a strict left grid, no accent colour. 1.0.2 was already the crash fix, so the redesign ships as 1.1.
+
+- **Design system:** `GyozaYap/Design/Theme.swift`.
+  - Tokens: monochrome colours plus one red, `live`, used only while recording and on Stop/Delete. San Francisco and SF Mono sizes; spacing; radius 5 on controls and 8 on containers; motion.
+  - Components: `MetaPair`, `SectionLabel`, `Hairline`, `SpeakerTag`, `KeyCap`, `LiveDot`, `EmptyState`, and the button styles `.primary`, `.quiet` and `.live`.
+- **Brief:** `docs/DESIGN.md` is the contract for the agents: principles, copy, states and guardrails.
+- **Adapting the taste-skill:** it's written for websites, so its principles were adapted for a native Mac app. No custom fonts or web imagery, and `NavigationSplitView`, toolbar, menus and shortcuts all stay.
+- **Three agents in parallel,** each on its own branch and owning its own files:
+  - `redesign/library`: sidebar, empty and no-selection states, menu bar.
+  - `redesign/meeting`: meeting detail.
+  - `redesign/capture`: recording, start sheet, toasts, Settings.
+  - They merged without conflicts.
+- **Behaviour changes, deliberately small:**
+  - The recording screen's `HSplitView` became a fixed notes column, 260–320 pt. The split view made the page wider than the detail pane, which clipped Stop.
+  - Copy changes on the start sheet: "Record this call?", "Copy chat notice".
+  - A done action item is struck through.
+  - Settings "Recording" is split into Recording and General.
+- **`EmptyState` has a minimum width.** The library agent found that a narrow measuring pass made the wrapping message ask for more height than the window had. `NavigationSplitView` then laid its content out off screen.
+
+### Snapshot pipeline (for reviewing design from CI)
+`UISnapshotTests` renders every screen in light and dark (01–08, plus 20 sidebar and 21 no-selection). CI prints them into the log as base64 JPEGs, and `scripts/decode-snapshots.py <log> <dir>` decodes them. Getting it right took four fixes:
+1. `cacheDisplay` draws only AppKit, so SwiftUI text and shapes were blank. The snapshots now render the layer tree with `layer.render(in:)` at 2x.
+2. Parametrised cases ran in parallel and spun the run loop into each other's windows. Fixed with `@Suite(.serialized)`.
+3. The rendered layers have no window background, so dark text landed on transparent pixels that turned white as JPEG. The window background is now painted first, for the right appearance.
+4. After a display pass AppKit marks the host layer geometry-flipped, and `render(in:)` ignores that on the root layer. The context is now flipped when the layer says so. (Ordering the window in wasn't the cause.)
+
+Two known limitations:
+- The macOS 26 glass sidebar renders as a blank panel. `20-sidebar` renders the list on its own instead.
+- CI uses legacy, always-visible scrollbars, so scroll views are about 16 pt narrower there than on a trackpad Mac.
+
 ## Verified
 CI is green:
 - 33 unit tests pass, covering the audio timeline, transcription logic, formatting, storage, export and PDF, and the AI prompts.
@@ -83,6 +114,7 @@ The user did a 1.5-minute solo test: they started a recording by hand, played a 
 - A first attempt played the podcast from a phone. That audio isn't Mac system audio, so there was no "Them", which is expected. Worth a line in the README.
 
 ## Not verified
+- The 1.1 redesign on a real Mac. Unchecked: the glass sidebar next to the flat canvas, the menu bar menu's sections (it's a real NSMenu, so no snapshot shows it), and the text tab row with Full Keyboard Access and VoiceOver.
 - The 1.0.2 fix, on a real call under macOS 27. Detection itself does work: it found the call, and the panel it then opened is what crashed.
 - Capture when a call app switches audio devices mid-call, for example a Bluetooth headset going into call mode.
 - Capture through speakers, without headphones.
