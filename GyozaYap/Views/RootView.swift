@@ -156,8 +156,9 @@ private struct MeetingRow: View {
     let meeting: Meeting
     let dateStyle: MeetingGroup.DateStyle
     /// Increased while the row is selected in a focused list. The selection
-    /// is a dark fill then, so the row switches to the system's hierarchical
-    /// styles, which turn light on it.
+    /// is filled with the accent then: dark graphite in light mode, light
+    /// graphite in dark mode (light enough for the text cursor to show), so
+    /// the row switches to the inverse ink.
     @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
@@ -165,7 +166,7 @@ private struct MeetingRow: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(meeting.title)
                 .font(Theme.Typeface.heading)
-                .foregroundStyle(onFill ? AnyShapeStyle(HierarchicalShapeStyle.primary) : AnyShapeStyle(Theme.ink))
+                .foregroundStyle(onFill ? AnyShapeStyle(Theme.inkInverse) : AnyShapeStyle(Theme.ink))
                 .lineLimit(1)
                 .truncationMode(.tail)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -186,7 +187,7 @@ private struct MeetingRow: View {
                 }
             }
             .lineLimit(1)
-            .foregroundStyle(onFill ? AnyShapeStyle(HierarchicalShapeStyle.secondary) : AnyShapeStyle(Theme.inkTertiary))
+            .foregroundStyle(onFill ? AnyShapeStyle(Theme.inkInverse.opacity(0.75)) : AnyShapeStyle(Theme.inkTertiary))
         }
         .padding(.vertical, 5)
         .accessibilityElement(children: .combine)
