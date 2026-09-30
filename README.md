@@ -2,6 +2,10 @@
 
 Make meeting yapping fun. GyozaYap is a native macOS meeting notetaker. It notices when your call starts, transcribes both you and everyone else **on your Mac**, and turns the yap into a summary, decisions, action items and a searchable transcript. No bot joins your call, and no account or API key is needed.
 
+## Version 1.1.1
+
+The text cursor is visible again in dark mode. It is drawn in the app's accent colour, and 1.1's dark graphite was the same grey as the sidebar's search field.
+
 ## Version 1.1
 
 A new look. GyozaYap now uses a Swiss, type-led design: black and white, one typeface, clear labels over values, thin rules instead of boxes, and lots of space. Red appears only while recording and on Stop.

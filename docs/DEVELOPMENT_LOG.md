@@ -99,6 +99,14 @@ Two known limitations:
 - The macOS 26 glass sidebar renders as a blank panel. `20-sidebar` renders the list on its own instead.
 - CI uses legacy, always-visible scrollbars, so scroll views are about 16 pt narrower there than on a trackpad Mac.
 
+## 1.1.1: invisible text cursor in dark mode (1 Oct 2026)
+The user reported that the sidebar search field had no blinking cursor. Everything else in 1.1 looked good on their Mac (macOS 27, dark mode), including the glass sidebar next to the flat canvas.
+
+- **Cause:** macOS draws the insertion point in the app's accent colour. 1.1 set the dark accent to graphite #585857. Sampled from the user's screenshot, the search field is #545151, a contrast of 1.1:1. Every text field was affected; the search field was simply the worst.
+- **Fix:** the dark accent is now #AAAAAE, 3.4:1 on the search field. A selected sidebar row is filled with the accent, so its text now uses `Theme.inkInverse` rather than the system's light hierarchical styles.
+- **Tests:** `AccentColorTests` check the accent's contrast as the cursor (on the search field and on `Theme.surface`) and as a selection fill (under `inkInverse`), in both appearances. The test was pushed first and failed on 1.1 (run 36791552411: 1.10, 2.44 and 2.65); it passes with the fix (run 36791576120).
+- **Unverified:** whether the checkbox's white tick reads well on the lighter dark accent (action items).
+
 ## Verified
 CI is green:
 - 33 unit tests pass, covering the audio timeline, transcription logic, formatting, storage, export and PDF, and the AI prompts.
@@ -114,7 +122,7 @@ The user did a 1.5-minute solo test: they started a recording by hand, played a 
 - A first attempt played the podcast from a phone. That audio isn't Mac system audio, so there was no "Them", which is expected. Worth a line in the README.
 
 ## Not verified
-- The 1.1 redesign on a real Mac. Unchecked: the glass sidebar next to the flat canvas, the menu bar menu's sections (it's a real NSMenu, so no snapshot shows it), and the text tab row with Full Keyboard Access and VoiceOver.
+- The 1.1 redesign on a real Mac: the user checked the library screen (it looks right). Still unchecked: the menu bar menu's sections (it's a real NSMenu, so no snapshot shows it), and the text tab row with Full Keyboard Access and VoiceOver.
 - The 1.0.2 fix, on a real call under macOS 27. Detection itself does work: it found the call, and the panel it then opened is what crashed.
 - Capture when a call app switches audio devices mid-call, for example a Bluetooth headset going into call mode.
 - Capture through speakers, without headphones.
