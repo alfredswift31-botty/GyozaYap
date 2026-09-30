@@ -18,7 +18,6 @@ enum Snapshot {
         host.frame = CGRect(origin: .zero, size: size)
         host.appearance = appearance
         host.wantsLayer = true
-        // Not ordered in: an on-screen window flips the layer geometry.
         let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = appearance
         window.contentView = host
@@ -44,6 +43,12 @@ enum Snapshot {
         appearance?.performAsCurrentDrawingAppearance { background = NSColor.windowBackgroundColor.cgColor }
         context.cgContext.setFillColor(background)
         context.cgContext.fill(CGRect(origin: .zero, size: size))
+        // After a display pass AppKit marks the host layer geometry-flipped;
+        // render(in:) ignores that on the root, so undo it here.
+        if layer.isGeometryFlipped || layer.contentsAreFlipped() {
+            context.cgContext.translateBy(x: 0, y: size.height)
+            context.cgContext.scaleBy(x: 1, y: -1)
+        }
         layer.render(in: context.cgContext)
         context.flushGraphics()
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
