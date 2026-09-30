@@ -18,13 +18,19 @@ enum Snapshot {
         host.frame = CGRect(origin: .zero, size: size)
         host.appearance = appearance
         host.wantsLayer = true
-        let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        // Borderless and ordered in off screen: a window that is never shown
+        // gets no display cycles, and a titled one draws its chrome into the layer.
+        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         window.appearance = appearance
         window.contentView = host
-        host.layoutSubtreeIfNeeded()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
-        host.layoutSubtreeIfNeeded()
-        window.displayIfNeeded()
+        window.setFrameOrigin(NSPoint(x: -20_000, y: -20_000))
+        window.orderFrontRegardless()
+        for _ in 0..<3 {
+            host.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            CATransaction.flush()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.4))
+        }
         // Render the layer tree: cacheDisplay only captures AppKit drawing and
         // drops SwiftUI's own layers (text and shapes came out blank).
         let scale: CGFloat = 2
@@ -40,6 +46,7 @@ enum Snapshot {
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: directory.appendingPathComponent("\(name)-\(dark ? "dark" : "light").png"))
+        window.orderOut(nil)
         window.contentView = nil
         return data
     }
@@ -122,7 +129,10 @@ extension View {
     }
 }
 
+/// Serialized: each render spins the run loop, and parallel cases would draw
+/// into each other's windows (dark captures came out blank).
 @MainActor
+@Suite(.serialized)
 struct UISnapshotTests {
     private static let window = CGSize(width: 1100, height: 720)
 
